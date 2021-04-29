@@ -280,6 +280,18 @@ type Object struct {
 
 	// ReadOnly specifies whether `MemPath` is opened read-only or read/write (default)
 	ReadOnly bool
+
+	// SevPolicy is the policy for the SEV instance. For more info, see AMD document 55766
+	// This is only relevant for sev-guest objects
+	SevPolicy uint32
+
+	// CertFilePath is the path to the guest Diffie–Hellman key
+	// This is only relevant for sev-guest objects
+	CertFilePath string
+
+	// SessionFilePath is the path to the launch blog
+	// This is only relevant for sev-guest objects
+	SessionFilePath string
 }
 
 // Valid returns true if the Object structure is valid and complete.
@@ -337,7 +349,16 @@ func (object Object) QemuParams(config *Config) []string {
 		objectParams = append(objectParams, fmt.Sprintf("id=%s", object.ID))
 		objectParams = append(objectParams, fmt.Sprintf("cbitpos=%d", object.CBitPos))
 		objectParams = append(objectParams, fmt.Sprintf("reduced-phys-bits=%d", object.ReducedPhysBits))
-
+		if object.SevPolicy {
+			objectParams = append(objectParams, fmt.Sprintf(",policy=%s", object.SevPolicy))
+		}
+		if object.CertFilePath != "" {
+			objectParams = append(objectParams, fmt.Sprintf(",dh-cert-file=%s", object.CertFilePath))
+		}
+		if object.SessionFilePath != "" {
+			objectParams = append(objectParams, fmt.Sprintf(",session-file=%s", object.SessionFilePath))
+		}
+		// Add OVMF firmware as pflash drive
 		driveParams = append(driveParams, "if=pflash,format=raw,readonly=on")
 		driveParams = append(driveParams, fmt.Sprintf("file=%s", object.File))
 	case SecExecGuest:
