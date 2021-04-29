@@ -264,11 +264,23 @@ type Object struct {
 
 	// CBitPos is the location of the C-bit in a guest page table entry
 	// This is only relevant for sev-guest objects
-	CBitPos uint32 
+	CBitPos uint32
 
 	// ReducedPhysBits is the reduction in the guest physical address space
 	// This is only relevant for sev-guest objects
 	ReducedPhysBits uint32
+
+	// SevPolicy is the
+	// This is only relevant for sev-guest objects
+	SevPolicy uint32
+
+	// CertFilePath is the path to
+	// This is only relevant for sev-guest objects with launch attestation
+	CertFilePath string
+
+	// SessionFilePath is the path to
+	// This is only relevant for sev-guest objects with launch attestation
+	SessionFilePath string
 }
 
 // Valid returns true if the Object structure is valid and complete.
@@ -326,6 +338,9 @@ func (object Object) QemuParams(config *Config) []string {
 		objectParams = append(objectParams, fmt.Sprintf(",id=%s", object.ID))
 		objectParams = append(objectParams, fmt.Sprintf(",cbitpos=%d", object.CBitPos))
 		objectParams = append(objectParams, fmt.Sprintf(",reduced-phys-bits=%d", object.ReducedPhysBits))
+		objectParams = append(objectParams, fmt.Sprintf(",policy=%s", object.SevPolicy))
+		objectParams = append(objectParams, fmt.Sprintf(",dh-cert-file=%s", object.CertFilePath))
+		objectParams = append(objectParams, fmt.Sprintf(",session-file=%s", object.SessionFilePath))
 
 		machineParams = append(machineParams, fmt.Sprintf("confidential-guest-support=%s", object.ID))
 	}
