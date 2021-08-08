@@ -258,6 +258,19 @@ type StatusInfo struct {
 	Status     string `json:"status"`
 }
 
+// SEVInfo represents the SEV guest inforation
+type SEVInfo struct {
+	APIMajor string `json:"api-major"`
+	APIMinor string `json:"api-minor"`
+	BuildId  string `json:"build-id"`
+	Policy   string `json:"policy"`
+}
+
+// SEVLaunchMeasurement represents the SEV prelaunch measurement
+type SEVLaunchMeasurement struct {
+	Measurement string `json:"data"`
+}
+
 func (q *QMP) readLoop(fromVMCh chan<- []byte) {
 	scanner := bufio.NewScanner(q.conn)
 	if q.cfg.MaxCapacity > 0 {
@@ -1641,4 +1654,58 @@ func (q *QMP) ExecuteDumpGuestMemory(ctx context.Context, protocol string, pagin
 	}
 
 	return q.executeCommand(ctx, "dump-guest-memory", args, nil)
+}
+
+// ExecuteQuerySEV queries SEV hardware details
+func (q *QMP) ExecuteQuerySEV(ctx context.Context) (SEVInfo, error) {
+	response, err := q.executeCommandWithResponse(ctx, "query-sev", nil, nil, nil)
+	if err != nil {
+		return SEVInfo{}, err
+	}
+
+	data, err := json.Marshal(response)
+	if err != nil {
+		return SEVInfo{}, fmt.Errorf("unable to extract SEV information: %v", err)
+	}
+
+	var info SEVInfo
+	if err = json.Unmarshal(data, &status); err != nil {
+		return SEVInfo{}, fmt.Errorf("unable to convert SEV information: %v", err)
+	}
+
+	return info, nil
+}
+
+// ExecuteQuerySEVLaunchMeasure queries SEV launch measurement
+func (q *QMP) ExecuteQuerySEVLaunchMeasure(ctx context.Context) (LaunchMeasurement, error) {
+	response, err := q.executeCommandWithResponse(ctx, "query-sev-launch-measure", nil, nil, nil)
+	if err != nil {
+		return LaunchMeasurement{}, err
+	}
+
+	data, err := json.Marshal(response)
+	if err != nil {
+		return LaunchMeasurement{}, fmt.Errorf("unable to extract launch measurement: %v", err)
+	}
+
+	var measurement LaunchMeasurement
+	if err = json.Unmarshal(data, &status); err != nil {
+		return LaunchMeasurement{}, fmt.Errorf("unable to convert launch measurement: %v", err)
+	}
+
+	// TODO: base64.b64decode(measurement)
+	return measurement, nil
+}
+
+// ExecuteSEVInjectLaunchSecret injects launch secret bundle into SEV guest
+func (q *QMP) ExecuteSEVInjectLaunchSecret(ctx context.Context, packet_hdr string, secret string, gpa string) error {
+	// TODO: 'secret': base64.b64encode(encrypted_secret).decode()
+	args := map[string]interface{}{
+		"packet_hdr": packet_hdr,
+		"secret":     secret,
+		"gpa":        gpa,
+	}
+
+	//ExecuteCont(ctx)
+	return q.executeCommand(ctx, "sev-inject-launch-secret", args, nil)
 }
